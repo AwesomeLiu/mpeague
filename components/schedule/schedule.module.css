@@ -1,0 +1,23 @@
+.row {
+  @apply flex items-center justify-center mb-[10px] last:mb-0;
+}
+
+.row .date {
+  @apply text-white mr-[25px] text-center;
+}
+
+.row .inner {
+  @apply grid grid-cols-4 gap-[25px] justify-items-center;
+}
+
+.card {
+  @apply w-[200px] rounded-[8px] border-green border-[2px] bg-white px-[8px] pt-[20px] pb-[10px];
+}
+
+.card .date {
+  @apply flex text-black items-center justify-center mb-[10px];
+}
+
+.card .inner {
+  @apply grid grid-cols-2 gap-[10px] justify-items-center;
+}

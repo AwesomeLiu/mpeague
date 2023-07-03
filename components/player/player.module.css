@@ -1,0 +1,9 @@
+.top10 {
+  @apply h-[520px] max-h-[520px];
+}
+
+.champion::before {
+  content: "";
+  background-image: url("../../public/crown.svg");
+  @apply w-[28px] h-[28px] block absolute top-[-14px] right-[-14px] bg-no-repeat bg-cover rotate-45;
+}
