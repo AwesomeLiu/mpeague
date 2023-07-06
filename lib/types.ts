@@ -10,60 +10,83 @@ export type tMenu = {
 };
 
 // ========== team & player ========== //
-export type BasicInfo = {
+export enum PlayerRankEnum {
+  SCORE = "score",
+  POINT = "best_point",
+  AVOID = "last_avoid_rate",
+};
+export type PlayerRankType = `${PlayerRankEnum}`;
+
+export type TeamInfo = {
   id: number;
   name: string;
-  avatar: string;
-  score: number;
-  rank: number;
-};
-
-export type Team = BasicInfo & {
+  theme: string;
+  score: string;
   eliminated: boolean;
+  matches: number;
+  avatar: string;
 };
 
-export type Player = BasicInfo & {
-  team: Team;
-};
+export type TeamDetail = TeamInfo & {
+  rank: number;
+  diff: string;
+  players?: PlayerBrief[];
+}
 
-export type TeamScore = Team & {
-  diff: number | "-";
-};
+export type PlayerInfo = {
+  id: number;
+  name: string;
+  team: number;
+  teamInfo: TeamInfo,
+  score: string;
+  matches: number;
+  avatar: string;
+}
 
-// export type PlayerScore = Player;
+export type PlayerBrief = {
+  id: number;
+  name: string;
+  team: number;
+  score: string;
+  rank: number;
+  avatar: string;
+}
 
-export type DailyScore = {
+export type UnknownPlayer = {
+  team: number;
+  teamInfo: TeamInfo,
+  score: string;
+}
+
+export type ScheduleType = {
   date: Date;
-  teams: Team[];
-  games: GameScore[];
+  round: number;
+  teams: TeamInfo[];
+  winner?: number;
 };
 
-export type GameScore = {
+export type UnionPlayer = PlayerInfo | UnknownPlayer;
+export type ScheduleDetail = {
+  date: Date;
+  gameId: number;
   session: number;
-  result: Player[];
+  players: UnionPlayer[];
 };
 
 // ========== game round ========== //
-/* export enum RoundNum {
-  A = "1",
-  B = "2",
-  C = "3",
-  D = "4",
-  E = "5",
-  F = "6",
-  G = "7",
-  H = "8",
-  I = "9",
-  J = "10",
-} */
-
-export type RoundNum = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10"; 
-
 export type GameRound = {
-  round: RoundNum;
-  start: Date;
-  end: Date;
+  round: string;
   remark: string;
   disabled?: boolean;
 };
 
+// ========== chart ========== //
+export type GameDetail = {
+  gameId: number;
+  detail: Chart[];
+}
+
+export type Chart = {
+  label: string;
+  points: number[];
+}

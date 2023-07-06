@@ -4,14 +4,18 @@ import { useState } from "react";
 import Image from "next/image";
 import cn from "classnames";
 import { getDay, isToday } from "date-fns";
-import { DailyScore } from "@/lib/types";
-import format from "@/lib/format";
-import DetailModal from "./detailModal";
+import { FCProps, GameDetail, ScheduleDetail, ScheduleType, TeamDetail } from "@/lib/types";
+import formatDate from "@/lib/formatDate";
 import styles from "./schedule.module.css";
+import Modal from "../modal/modal";
+import DetailModalContent from "./detailModalContent";
 
-type ScheduleCardProps = {
+type ScheduleCardProps = FCProps & {
   type: "row" | "card";
-  data: DailyScore;
+  schedule: ScheduleType;
+  detail: ScheduleDetail[];
+  teamDetail: TeamDetail[];
+  gameDetail: GameDetail[];
 };
 
 const days: Record<number, string> = {
@@ -24,12 +28,18 @@ const days: Record<number, string> = {
   6: "（六）",
 };
 
-export default function ScheduleCard({ type, data }: ScheduleCardProps) {
+export default function ScheduleCard({
+  type,
+  schedule, 
+  detail,
+  teamDetail,
+  gameDetail,
+}: ScheduleCardProps) {
   const [visible, setVisible] = useState(false);
 
-  const { date, teams }: DailyScore = data;
+  const { date, teams, winner }: ScheduleType = schedule;
 
-  const dateString: string = format(date, "MM/dd");
+  const dateString: string = formatDate(date, "MM/dd");
   const day: string = days[getDay(date)];
 
   return (
@@ -57,7 +67,7 @@ export default function ScheduleCard({ type, data }: ScheduleCardProps) {
               <div
                 key={d.id}
                 className={cn({
-                  "grayscale": d.rank !== 1,
+                  "grayscale": winner != null && d.id !== winner
                 })}
               >
                 <Image
@@ -71,11 +81,19 @@ export default function ScheduleCard({ type, data }: ScheduleCardProps) {
           }
         </div>
       </div>
-      <DetailModal
+      <Modal
         visible={visible}
-        data={data}
+        width={1200}
         closeFunc={() => setVisible(false)}
-      />
+      >
+        <DetailModalContent
+          visible={visible}
+          detail={detail}
+          showTeamDetail={winner == null}
+          teamDetail={teamDetail}
+          gameDetail={gameDetail}
+        />
+      </Modal>
     </>
   );
 }

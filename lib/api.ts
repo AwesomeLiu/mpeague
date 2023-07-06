@@ -1,11 +1,229 @@
+import { db } from "@vercel/postgres";
 import {
-  BasicInfo,
-  DailyScore,
+  GameDetail,
   GameRound,
-  Team,
-  TeamScore,
+  PlayerBrief,
+  PlayerInfo,
+  PlayerRankType,
+  ScheduleDetail,
+  ScheduleType,
+  TeamDetail,
+  TeamInfo,
   tMenu,
 } from "./types";
+import {
+  handleGameDetail,
+  handleGameRound,
+  handlePlayerBrief,
+  handlePlayerInfo,
+  handleScheduleDetail,
+  handleScheduleType,
+  handleTeamDetail,
+  handleTeamInfo
+} from "./handler";
+import formatDate from "./formatDate";
+
+export async function fetchData(queryString: string) {
+  /* console.log({
+    POSTGRES_URL: process.env.POSTGRES_URL,
+    POSTGRES_URL_NON_POOLING: process.env.POSTGRES_URL_NON_POOLING
+  }); */
+  const client = await db.connect();
+  const response = await client.query(queryString);
+  client.release();
+  return response;
+}
+
+export async function getTeamsById(teamId?: number[]): Promise<TeamInfo[]> {
+  let constraint = "";
+  if (Array.isArray(teamId) && teamId.length > 0) {
+    constraint = `WHERE id in (${teamId.toString()})`;
+  }
+
+  const queryString = `
+    SELECT 
+      id,
+      team_name AS name,
+      team_theme AS theme,
+      score,
+      eliminated,
+      num_matches AS matches
+    FROM team
+    ${constraint}
+    ORDER BY id ASC
+  `;
+  const response = await fetchData(queryString);
+  const data = handleTeamInfo(response.rows);
+  return data;
+}
+
+export async function getTeamsRank(teamId?: number[], withPlayers: boolean = false): Promise<TeamDetail[]> {
+  let constraint = "";
+  if (Array.isArray(teamId) && teamId.length > 0) {
+    constraint = `WHERE id in (${teamId.toString()})`;
+  }
+
+  const queryString = `
+    SELECT 
+      id,
+      team_name AS name,
+      team_theme AS theme,
+      score,
+      eliminated,
+      num_matches AS matches,
+      RANK() OVER (ORDER BY score DESC) AS rank
+    FROM team
+    ${constraint}
+  `;
+  const response = await fetchData(queryString);
+
+  if (withPlayers) {
+    let players = await getPlayersByTeamId(teamId);
+    let data = handleTeamDetail(response.rows, players);
+    return data;
+  } else {
+    let data = handleTeamDetail(response.rows);
+    return data;
+  }
+}
+
+export async function getPlayersById(playerId?: number[]): Promise<PlayerInfo[]> {
+  let constraint = "";
+  if (Array.isArray(playerId) && playerId.length > 0) {
+    constraint = `WHERE id in (${playerId.toString()})`;
+  }
+
+  const queryString = `
+    SELECT
+      id,
+      player_name AS name,
+      team_id AS team,
+      score,
+      num_matches AS matches
+    FROM player
+    ${constraint}
+  `;
+  const response = await fetchData(queryString);
+  const teams = await getTeamsById();
+  const data = handlePlayerInfo(response.rows, teams);
+  return data;
+}
+
+export async function getPlayerRank(orderType: PlayerRankType, playerId?: number[]): Promise<PlayerBrief[]> {
+  let constraint = "";
+  if (Array.isArray(playerId) && playerId.length > 0) {
+    constraint = `WHERE id in (${playerId.toString()})`;
+  }
+  
+  const queryString = `
+    SELECT
+      id,
+      player_name AS name,
+      team_id AS team,
+      ${orderType} AS score,
+      RANK() OVER (ORDER BY ${orderType} DESC NULLS LAST) AS rank
+    FROM player
+    ${constraint}
+  `;
+  const response = await fetchData(queryString);
+  const data = handlePlayerBrief(response.rows, orderType);
+  return data;
+}
+
+export async function getPlayersByTeamId(teamId?: number[]): Promise<PlayerBrief[]> {
+  let constraint = "";
+  if (Array.isArray(teamId) && teamId.length > 0) {
+    constraint = `WHERE team_id in (${teamId.toString()})`;
+  }
+
+  const queryString = `
+    SELECT
+      id,
+      player_name AS name,
+      team_id AS team,
+      score,
+      RANK() OVER (ORDER BY score DESC NULLS LAST) AS rank
+    FROM player
+    ${constraint}
+  `;
+  const response = await fetchData(queryString);
+  const data = handlePlayerBrief(response.rows);
+  return data;
+}
+
+export async function getCurrentSchedule(): Promise<ScheduleType[]> {
+  const queryString = `
+    SELECT * FROM schedule
+    WHERE game_round = (
+      SELECT
+        game_round
+      FROM schedule
+      WHERE game_date = current_date
+    )
+    ORDER BY game_date ASC;
+  `;
+  const response = await fetchData(queryString);
+
+  if (response.rowCount === 0) {
+    // query last round
+    let res = await fetchData(`
+      SELECT
+        MAX(game_round) AS max_round
+      FROM schedule
+    `);
+    let lastRound = res.rows[0].max_round;
+    let result = await getScheduleByRound(lastRound);
+    return result;
+  }
+
+  const teams = await getTeamsById();
+  const data = handleScheduleType(response.rows, teams);
+  return data;
+}
+
+export async function getScheduleByRound(round: number): Promise<ScheduleType[]> {
+  const queryString = `
+    SELECT * FROM schedule
+    WHERE game_round = ${round}
+    ORDER BY game_date ASC;
+  `;
+  const response = await fetchData(queryString);
+  const teams = await getTeamsById();
+  const data = handleScheduleType(response.rows, teams);
+  return data;
+}
+
+export async function getScheduleByDate(startDate: Date, endDate: Date): Promise<ScheduleType[]> {
+  const queryString = `
+    SELECT * FROM schedule
+    WHERE game_date BETWEEN ${startDate} AND ${endDate}
+    ORDER BY game_date ASC;
+  `;
+  const response = await fetchData(queryString);
+  const teams = await getTeamsById();
+  const data = handleScheduleType(response.rows, teams);
+  return data;
+}
+
+export async function getScheduleDetail(date: Date, teams: TeamInfo[]): Promise<ScheduleDetail[]> {
+  const queryString = `
+    SELECT
+      game.*,
+      schedule.team_1,
+      schedule.team_2,
+      schedule.team_3,
+      schedule.team_4
+    FROM game
+    INNER JOIN schedule
+    ON game.game_date = schedule.game_date
+    WHERE game.game_date = '${formatDate(date, "yyyy-MM-dd")}'
+    ORDER BY game_session ASC;
+  `;
+  const response = await fetchData(queryString);
+  const players = await getPlayersById();
+  const data = handleScheduleDetail(date, response.rows, players, teams);
+  return data;
+}
 
 export async function getMenu(): Promise<tMenu[]> {
   const menu: tMenu[] = [
@@ -42,650 +260,36 @@ export async function getMenu(): Promise<tMenu[]> {
   return menu;
 }
 
-export async function getTeamScore(): Promise<TeamScore[]> {
-  const teamScore: TeamScore[] = [
-    {
-      id: 1,
-      rank: 5,
-      avatar: "/2.png",
-      name: "风林火山",
-      score: -150.4,
-      diff: 52.6,
-      eliminated: true
-    },
-    {
-      id: 2,
-      rank: 4,
-      avatar: "/2.png",
-      name: "风林火山",
-      score: -150.4,
-      diff: 52.6,
-      eliminated: true
-    },
-    {
-      id: 3,
-      rank: 2,
-      avatar: "/3.png",
-      name: "格斗俱乐部",
-      score: 204.6,
-      diff: 290.8,
-      eliminated: true
-    },
-    {
-      id: 4,
-      rank: 1,
-      avatar: "/4.png",
-      name: "ABEMAS",
-      score: 495.4,
-      diff: "-",
-      eliminated: true
-    },
-    {
-      id: 5,
-      rank: 7,
-      avatar: "/6.png",
-      name: "雷电",
-      score: -97.8,
-      diff: 302.4,
-      eliminated: false
-    },
-    {
-      id: 6,
-      rank: 3,
-      avatar: "/6.png",
-      name: "雷电",
-      score: -97.8,
-      diff: 302.4,
-      eliminated: true
-    },
-    {
-      id: 7,
-      rank: 8,
-      avatar: "/6.png",
-      name: "雷电",
-      score: -97.8,
-      diff: 302.4,
-      eliminated: false
-    },
-    {
-      id: 8,
-      rank: 6,
-      avatar: "/6.png",
-      name: "雷电",
-      score: -97.8,
-      diff: 302.4,
-      eliminated: true
-    },
-  ];
-  teamScore.sort((a, b) => a.rank - b.rank);
-
-  return teamScore;
-}
-
-export async function getPlayerScore(size: number): Promise<BasicInfo[]> {
-  const data: BasicInfo[] = Array(size).fill(null).map((d, i) => ({
-      id: i + 1,
-      avatar: "/profile_1.png",
-      name: `选手 ${i + 1} 号`,
-      score: Math.random() * 1000 - 500,
-    }))
-    .sort((a, b) => b.score - a.score)
-    .map((d, i) => ({
-      ...d,
-      rank: i + 1,
-      score: +d.score.toFixed(1)
-    }));
-
+export async function getGameRounds(): Promise<GameRound[]> {
+  const queryString = `
+    SELECT
+      game_round AS round,
+      remark
+    FROM schedule
+    GROUP BY game_round, remark
+    ORDER BY game_round ASC;
+  `;
+  const response = await fetchData(queryString);
+  const data = handleGameRound(response.rows);
   return data;
 }
 
-export async function getLastSchedule(): Promise<DailyScore[]> {
-  const teams: Team[] = [
-    {
-      id: 2,
-      rank: 4,
-      avatar: "/2.png",
-      name: "风林火山",
-      score: -150.4,
-      eliminated: false,
-    },
-    {
-      id: 3,
-      rank: 2,
-      avatar: "/3.png",
-      name: "格斗俱乐部",
-      score: 204.6,
-      eliminated: false,
-    },
-    {
-      id: 4,
-      rank: 1,
-      avatar: "/4.png",
-      name: "ABEMAS",
-      score: 495.4,
-      eliminated: false,
-    },
-    {
-      id: 5,
-      rank: 7,
-      avatar: "/6.png",
-      name: "雷电",
-      score: -97.8,
-      eliminated: false,
-    },
-  ];
+export async function getGameDetailByGameId(gameId: number[]): Promise<GameDetail[]> {
+  if (Array.isArray(gameId) && gameId.length === 0) {
+    return [];
+  }
 
-  const data: DailyScore = {
-    date: new Date(),
-    teams: teams,
-    games: [
-      {
-        session: 1,
-        result: [
-          {
-            id: 1,
-            rank: 1,
-            avatar: "/profile_1.png",
-            name: "xs1h",
-            score: -150.4,
-            team: {
-              id: 2,
-              rank: 4,
-              avatar: "/2.png",
-              name: "风林火山",
-              score: -150.4,
-              eliminated: false,
-            },
-          },
-          {
-            id: 2,
-            rank: 2,
-            avatar: "/profile_1.png",
-            name: "xs2h",
-            score: -150.4,
-            team: {
-              id: 2,
-              rank: 4,
-              avatar: "/4.png",
-              name: "风林火山",
-              score: -150.4,
-              eliminated: false,
-            },
-          },
-          {
-            id: 3,
-            rank: 4,
-            avatar: "/profile_1.png",
-            name: "xs22332h",
-            score: -150.4,
-            team: {
-              id: 2,
-              rank: 4,
-              avatar: "/6.png",
-              name: "风林火山",
-              score: -150.4,
-              eliminated: false,
-            },
-          },
-          {
-            id: 4,
-            rank: 3,
-            avatar: "/profile_1.png",
-            name: "xs42343h",
-            score: -150.4,
-            team: {
-              id: 2,
-              rank: 4,
-              avatar: "/3.png",
-              name: "风林火山",
-              score: -150.4,
-              eliminated: false,
-            },
-          },
-        ]
-      },
-      {
-        session: 2,
-        result: [
-          {
-            id: 1,
-            rank: 3,
-            avatar: "/profile_1.png",
-            name: "xs1h",
-            score: -150.4,
-            team: {
-              id: 2,
-              rank: 4,
-              avatar: "/2.png",
-              name: "风林火山",
-              score: -10.4,
-              eliminated: false,
-            },
-          },
-          {
-            id: 2,
-            rank: 1,
-            avatar: "/profile_1.png",
-            name: "xs2h",
-            score: -15.4,
-            team: {
-              id: 2,
-              rank: 4,
-              avatar: "/4.png",
-              name: "风林火山",
-              score: -50.4,
-              eliminated: false,
-            },
-          },
-          {
-            id: 3,
-            rank: 4,
-            avatar: "/profile_1.png",
-            name: "xs22332h",
-            score: -150.4,
-            team: {
-              id: 2,
-              rank: 4,
-              avatar: "/6.png",
-              name: "风林火山",
-              score: -150.4,
-              eliminated: false,
-            },
-          },
-          {
-            id: 4,
-            rank: 2,
-            avatar: "/profile_1.png",
-            name: "xs42343h",
-            score: -150.4,
-            team: {
-              id: 2,
-              rank: 4,
-              avatar: "/3.png",
-              name: "风林火山",
-              score: -150.4,
-              eliminated: false,
-            },
-          },
-        ]
-      },
-      {
-        session: 3,
-        result: [
-          {
-            id: 1,
-            rank: 1,
-            avatar: "/profile_1.png",
-            name: "xs1h",
-            score: -150.4,
-            team: {
-              id: 2,
-              rank: 4,
-              avatar: "/2.png",
-              name: "风林火山",
-              score: -150.4,
-              eliminated: false,
-            },
-          },
-          {
-            id: 2,
-            rank: 2,
-            avatar: "/profile_1.png",
-            name: "xs2h",
-            score: -150.4,
-            team: {
-              id: 2,
-              rank: 4,
-              avatar: "/4.png",
-              name: "风林火山",
-              score: -150.4,
-              eliminated: false,
-            },
-          },
-          {
-            id: 3,
-            rank: 4,
-            avatar: "/profile_1.png",
-            name: "xs22332h",
-            score: -150.4,
-            team: {
-              id: 2,
-              rank: 4,
-              avatar: "/6.png",
-              name: "风林火山",
-              score: -150.4,
-              eliminated: false,
-            },
-          },
-          {
-            id: 4,
-            rank: 3,
-            avatar: "/profile_1.png",
-            name: "xs42343h",
-            score: -150.4,
-            team: {
-              id: 2,
-              rank: 4,
-              avatar: "/3.png",
-              name: "风林火山",
-              score: -150.4,
-              eliminated: false,
-            },
-          },
-        ]
-      },
-    ]
-  };
+  let constraint = "";
+  if (Array.isArray(gameId) && gameId.length > 0) {
+    constraint = `WHERE game_id in (${gameId.toString()})`;
+  }
 
-  return [data, data, data, data, data, data];
-}
-
-export async function getScheduleByDate(startDate: Date, endDate: Date): Promise<DailyScore[]> {
-  const teams: Team[] = [
-    {
-      id: 2,
-      rank: 4,
-      avatar: "/2.png",
-      name: "风林火山",
-      score: -150.4,
-      eliminated: false,
-    },
-    {
-      id: 3,
-      rank: 2,
-      avatar: "/3.png",
-      name: "格斗俱乐部",
-      score: 204.6,
-      eliminated: false,
-    },
-    {
-      id: 4,
-      rank: 1,
-      avatar: "/4.png",
-      name: "ABEMAS",
-      score: 495.4,
-      eliminated: false,
-    },
-    {
-      id: 5,
-      rank: 7,
-      avatar: "/6.png",
-      name: "雷电",
-      score: -97.8,
-      eliminated: false,
-    },
-  ];
-
-  const data: DailyScore = {
-    date: startDate,
-    teams: teams,
-    games: [
-      {
-        session: 1,
-        result: [
-          {
-            id: 1,
-            rank: 1,
-            avatar: "/profile_1.png",
-            name: "xs1h",
-            score: -150.4,
-            team: {
-              id: 2,
-              rank: 4,
-              avatar: "/2.png",
-              name: "风林火山",
-              score: -150.4,
-              eliminated: false,
-            },
-          },
-          {
-            id: 2,
-            rank: 2,
-            avatar: "/profile_1.png",
-            name: "xs2h",
-            score: -150.4,
-            team: {
-              id: 2,
-              rank: 4,
-              avatar: "/4.png",
-              name: "风林火山",
-              score: -150.4,
-              eliminated: false,
-            },
-          },
-          {
-            id: 3,
-            rank: 4,
-            avatar: "/profile_1.png",
-            name: "xs22332h",
-            score: -150.4,
-            team: {
-              id: 2,
-              rank: 4,
-              avatar: "/6.png",
-              name: "风林火山",
-              score: -150.4,
-              eliminated: false,
-            },
-          },
-          {
-            id: 4,
-            rank: 3,
-            avatar: "/profile_1.png",
-            name: "xs42343h",
-            score: -150.4,
-            team: {
-              id: 2,
-              rank: 4,
-              avatar: "/3.png",
-              name: "风林火山",
-              score: -150.4,
-              eliminated: false,
-            },
-          },
-        ]
-      },
-      {
-        session: 2,
-        result: [
-          {
-            id: 1,
-            rank: 3,
-            avatar: "/profile_1.png",
-            name: "xs1h",
-            score: -150.4,
-            team: {
-              id: 2,
-              rank: 4,
-              avatar: "/2.png",
-              name: "风林火山",
-              score: -10.4,
-              eliminated: false,
-            },
-          },
-          {
-            id: 2,
-            rank: 1,
-            avatar: "/profile_1.png",
-            name: "xs2h",
-            score: -15.4,
-            team: {
-              id: 2,
-              rank: 4,
-              avatar: "/4.png",
-              name: "风林火山",
-              score: -50.4,
-              eliminated: false,
-            },
-          },
-          {
-            id: 3,
-            rank: 4,
-            avatar: "/profile_1.png",
-            name: "xs22332h",
-            score: -150.4,
-            team: {
-              id: 2,
-              rank: 4,
-              avatar: "/6.png",
-              name: "风林火山",
-              score: -150.4,
-              eliminated: false,
-            },
-          },
-          {
-            id: 4,
-            rank: 2,
-            avatar: "/profile_1.png",
-            name: "xs42343h",
-            score: -150.4,
-            team: {
-              id: 2,
-              rank: 4,
-              avatar: "/3.png",
-              name: "风林火山",
-              score: -150.4,
-              eliminated: false,
-            },
-          },
-        ]
-      },
-      {
-        session: 3,
-        result: [
-          {
-            id: 1,
-            rank: 1,
-            avatar: "/profile_1.png",
-            name: "xs1h",
-            score: -150.4,
-            team: {
-              id: 2,
-              rank: 4,
-              avatar: "/2.png",
-              name: "风林火山",
-              score: -150.4,
-              eliminated: false,
-            },
-          },
-          {
-            id: 2,
-            rank: 2,
-            avatar: "/profile_1.png",
-            name: "xs2h",
-            score: -150.4,
-            team: {
-              id: 2,
-              rank: 4,
-              avatar: "/4.png",
-              name: "风林火山",
-              score: -150.4,
-              eliminated: false,
-            },
-          },
-          {
-            id: 3,
-            rank: 4,
-            avatar: "/profile_1.png",
-            name: "xs22332h",
-            score: -150.4,
-            team: {
-              id: 2,
-              rank: 4,
-              avatar: "/6.png",
-              name: "风林火山",
-              score: -150.4,
-              eliminated: false,
-            },
-          },
-          {
-            id: 4,
-            rank: 3,
-            avatar: "/profile_1.png",
-            name: "xs42343h",
-            score: -150.4,
-            team: {
-              id: 2,
-              rank: 4,
-              avatar: "/3.png",
-              name: "风林火山",
-              score: -150.4,
-              eliminated: false,
-            },
-          },
-        ]
-      },
-    ]
-  };
-
-  return [data, data, data, data, data, data];
-}
-
-export async function getGameRounds(): Promise<GameRound[]> {
-  const rounds: GameRound[] = [
-    {
-      "round": "1",
-      "start": new Date("2023-04-03"),
-      "end": new Date("2023-04-08"),
-      "remark": "第一周",
-    },
-    {
-      "round": "2",
-      "start": new Date("2023-04-10"),
-      "end": new Date("2023-04-15"),
-      "remark": "第二周",
-    },
-    {
-      "round": "3",
-      "start": new Date("2023-04-17"),
-      "end": new Date("2023-04-22"),
-      "remark": "第三周",
-    },
-    {
-      "round": "4",
-      "start": new Date("2023-04-24"),
-      "end": new Date("2023-04-29"),
-      "remark": "第四周",
-    },
-    {
-      "round": "5",
-      "start": new Date("2023-05-01"),
-      "end": new Date("2023-05-06"),
-      "remark": "第五周",
-    },
-    {
-      "round": "6",
-      "start": new Date("2023-05-08"),
-      "end": new Date("2023-05-13"),
-      "remark": "第六周",
-    },
-    {
-      "round": "7",
-      "start": new Date("2023-05-15"),
-      "end": new Date("2023-05-20"),
-      "remark": "第七周",
-    },
-    {
-      "round": "8",
-      "start": new Date("2023-05-22"),
-      "end": new Date("2023-05-27"),
-      "remark": "第八周",
-    },
-    {
-      "round": "9",
-      "start": new Date("2023-05-29"),
-      "end": new Date("2023-06-10"),
-      "remark": "半决赛",
-      "disabled": true,
-    },
-    {
-      "round": "10",
-      "start": new Date("2023-06-12"),
-      "end": new Date("2023-06-17"),
-      "remark": "决赛",
-      "disabled": true,
-    },
-  ];
-
-  return rounds;
+  const queryString = `
+    SELECT * FROM game_detail
+    ${constraint}
+    ORDER BY id ASC;
+  `;
+  const response = await fetchData(queryString);
+  const data = handleGameDetail(response.rows, gameId);
+  return data;
 }

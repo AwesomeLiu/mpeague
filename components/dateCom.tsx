@@ -1,5 +1,5 @@
 import { parseISO, isSameYear } from "date-fns";
-import format from "@/lib/format";
+import formatDate from "@/lib/formatDate";
 
 type DateProps = {
   dateString: string;
@@ -14,7 +14,7 @@ export default function DateCom({ dateString }: DateProps) {
       dateTime={dateString}
       className="text-[16px]"
     >
-      {format(date, formatStr)}
+      {formatDate(date, formatStr)}
     </time>
   );
 }

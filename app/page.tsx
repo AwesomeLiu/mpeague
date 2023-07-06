@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { PlayerRankEnum } from "@/lib/types";
 import Container from "@/components/container";
 import TeamRank from "@/components/team/teamRank";
 import News from "@/components/news";
@@ -31,9 +32,9 @@ export default async function Page() {
           <h1 className="text-4xl mb-[16px] font-bold text-center">PLAYERS</h1>
           <h2 className="text-xl mb-[36px] font-bold text-center">个人成绩</h2>
           <PlayerRankWrapper>
-            <PlayerRank title="个人总分" size={32} />
-            <PlayerRank title="最高打点" size={32} />
-            <PlayerRank title="避四率" size={32} />
+            <PlayerRank title="个人总分" type={PlayerRankEnum.SCORE} />
+            <PlayerRank title="最高打点" type={PlayerRankEnum.POINT} />
+            <PlayerRank title="避四率" type={PlayerRankEnum.AVOID} />
           </PlayerRankWrapper>
         </section>
         <section role="news">

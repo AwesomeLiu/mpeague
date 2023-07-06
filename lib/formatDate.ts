@@ -5,7 +5,7 @@ import { zhCN } from "date-fns/locale";
 // it will format dates in whichever way is appropriate to the locale
 // PP: Apr 29, 1993
 
-export default function foo(
+export default function formatDate(
   date: number | Date,
   formatStr: string = "PP",
   weekStartsOn: 0 | 1 | 2 | 3 | 4 | 5 | 6 = 1,

@@ -1,5 +1,5 @@
 .top10 {
-  @apply h-[520px] max-h-[520px];
+  @apply max-h-[520px];
 }
 
 .champion::before {

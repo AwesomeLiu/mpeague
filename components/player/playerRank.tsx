@@ -1,23 +1,23 @@
 import cn from "classnames";
-import { BasicInfo } from "@/lib/types";
-import { getPlayerScore } from "@/lib/api";
+import { PlayerRankType } from "@/lib/types";
+import { getPlayerRank } from "@/lib/api";
 import Avatar from "../avatar";
 import styles from "./player.module.css";
 
-interface PlayerRankProps {
+type PlayerRankProps = {
   title: string;
-  size: number;
-}
+  type: PlayerRankType;
+};
 
-export default async function PlayerRank({ title, size }: PlayerRankProps) {
-  const dataSource: BasicInfo[] = await getPlayerScore(size);
+export default async function PlayerRank({ title, type }: PlayerRankProps) {
+  const dataSource = await getPlayerRank(type);
 
   return (
     <div className="w-[400px]">
       <h3 className="text-center text-lg font-bold mb-[12px]">{title}</h3>
       <ol>
         {
-          dataSource.filter((d, i) => i < size).map(d => (
+          dataSource.map(d => (
             <li key={d.id}>
               <div
                 className={cn("flex items-center justify-center gap-[12px] py-[6px]", {

@@ -1,14 +1,16 @@
 import cn from "classnames";
-import { getTeamsRank } from "@/lib/api";
+import { TeamDetail } from "@/lib/types";
 import Avatar from "../avatar";
 
-export default async function TeamRank() {
-  const dataSource = await getTeamsRank();
+type TeamDetailRankProps = {
+  teamDetail: TeamDetail[];
+};
 
+export default function TeamDetailRank({ teamDetail }: TeamDetailRankProps) {
   return (
     <ol>
       {
-        dataSource.map(d => (
+        teamDetail.map(d => (
           <li key={d.id}>
             <div className="flex items-center justify-center gap-[25px]">
               <div
@@ -27,9 +29,23 @@ export default async function TeamRank() {
                   size={100}
                 />
               </div>
-              <div className="basis-[280px] text-[24px] font-bold text-left">{d.name}</div>
+              <div className="basis-[500px] grid grid-cols-5 gap-[10px] justify-items-center">
+                {
+                  d.players?.map(p => (
+                    <Avatar
+                      key={p.id}
+                      src={p.avatar}
+                      alt={p.name}
+                      size={80}
+                    />
+                  ))
+                }
+              </div>
               <div className="basis-[150px] text-[24px] font-bold text-right">{d.score}</div>
-              <div className="basis-[150px] text-[24px] font-bold text-right">{d.diff}</div>
+              <div className="basis-[150px] text-[24px] font-bold text-right">
+                <span className="text-[40px] text-lime-600 mr-[10px]">{d.matches}</span>
+                <span>/ 80</span>
+              </div>
             </div>
           </li>
         ))

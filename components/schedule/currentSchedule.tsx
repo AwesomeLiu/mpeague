@@ -1,25 +1,26 @@
-import { DailyScore } from "@/lib/types";
-import { getLastSchedule } from "@/lib/api";
-import ScheduleCard from "@/components/schedule/scheduleCard";
+import { ScheduleType } from "@/lib/types";
+import { getCurrentSchedule } from "@/lib/api";
 import Container from "../container";
+import ScheduleCardWrapper from "./scheduleCardWrapper";
 
-export default async function LastSchedule() {
-  const schedule = await getLastSchedule() as DailyScore[];
+export default async function CurrentSchedule() {
+  const schedule = await getCurrentSchedule() as ScheduleType[];
 
   return (
-    <section className="mb-[80px] py-[50px] bg-green" role="intro">
+    <section className="mb-[80px] py-[60px] bg-green">
       <h1 className="text-5xl text-white font-bold text-center mb-[16px]">SCHEDULE</h1>
       <h2 className="text-2xl text-white font-bold text-center mb-[32px]">日程</h2>
       <Container cns="w-[650px]">
         {
           schedule.map((d, i) => (
-            <ScheduleCard
+            <ScheduleCardWrapper
               key={i}
               type="row"
-              data={d}
+              schedule={d}
             />
           ))
         }
+        <div id="schedule" role="anchor"></div>
       </Container>
     </section>
   );
