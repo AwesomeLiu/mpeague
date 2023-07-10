@@ -5,7 +5,7 @@ import Image from "next/image";
 import cn from "classnames";
 import { getDay, isToday } from "date-fns";
 import { FCProps, GameDetail, ScheduleDetail, ScheduleType, TeamDetail } from "@/lib/types";
-import formatDate from "@/lib/formatDate";
+import { formatDate } from "@/lib/format";
 import styles from "./schedule.module.css";
 import Modal from "../modal/modal";
 import DetailModalContent from "./detailModalContent";

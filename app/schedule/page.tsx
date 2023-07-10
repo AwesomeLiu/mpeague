@@ -29,7 +29,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
                 d.disabled ?
                   <button
                     key={d.round}
-                    className="btn btn-disabled font-bold w-[100%] !mr-0"
+                    className="btn btn-disabled w-[100%] !mr-0"
                     disabled={d.disabled}
                   >
                     {d.remark}
@@ -40,7 +40,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
                     href={{ query: { round: d.round }, hash: "schedule" }}
                   >
                     <button
-                      className={cn("btn font-bold w-[100%] !mr-0", {
+                      className={cn("btn w-[100%] !mr-0", {
                         "btn-border": !((check && round === d.round) || (!check && d.round === "1")),
                         "btn-primary": (check && round === d.round) || (!check && d.round === "1"),
                       })}

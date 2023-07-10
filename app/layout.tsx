@@ -1,5 +1,7 @@
 import "./globals.css";
+import "toastr/build/toastr.css";
 import { Metadata } from "next";
+import Script from "next/script";
 import { FCProps } from "@/lib/types";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
@@ -30,6 +32,7 @@ export default async function RootLayout({ children }: FCProps) {
           <Footer />
         </div>
       </body>
+      <Script src="toastr.js" />
     </html>
   );
 }

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { getDay } from "date-fns";
 import { ArrowsPointingInIcon, ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
 import { GameDetail, ScheduleDetail, TeamDetail } from "@/lib/types";
-import format from "@/lib/formatDate";
+import { formatDate } from "@/lib/format";
 import GameRank from "../player/gameRank";
 import GameChart from "./gameChart";
 import TeamDetailRank from "../team/teamDetailRank";
@@ -37,7 +37,7 @@ export default function DetailModalContent({
   const [session, setSession] = useState<number | null>(null);
 
   const date = detail[0].date;
-  const dateString: string = format(date, "MM/dd");
+  const dateString: string = formatDate(date, "MM/dd");
   const day: string = days[getDay(date)];
 
   const themes = detail[0].players.map(d => d.teamInfo.theme);

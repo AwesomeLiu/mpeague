@@ -22,7 +22,7 @@
 
 /* button */
 .btn {
-  @apply h-[40px] px-[20px] py-[6px] text-[16px] rounded-[40px] border-[2px] tracking-wide border-green;
+  @apply h-[40px] px-[20px] py-[6px] text-[16px] font-bold rounded-[40px] border-[2px] tracking-wide border-green;
 }
 .btn:not(:disabled) {
   @apply hover:bg-green hover:text-white active:bg-green active:text-white;
@@ -33,12 +33,21 @@
 .btn-border {
   @apply bg-white text-green;
 }
-.btn-disabled {
-  @apply border-gray-500 bg-white text-gray-500 cursor-not-allowed;
+.btn-disabled,
+.btn:disabled {
+  @apply !border-gray-500 !bg-white !text-gray-500 !cursor-not-allowed;
 }
 
 /* hover card */
 .hoverCard {
   @apply hover:shadow-md hover:scale-105;
   transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+/* upload */
+.preview > p {
+  @apply mb-[5px];
+}
+.preview > p > label {
+  @apply mr-[8px];
 }

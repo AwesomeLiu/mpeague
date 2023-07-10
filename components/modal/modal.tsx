@@ -6,10 +6,10 @@ import { FCProps } from "@/lib/types";
 import { useEffect } from "react";
 
 type ModalProps = FCProps & {
-  title?: string | React.ReactNode;
-  width?: number;
   visible: boolean;
   closeFunc: Function;
+  title?: string | React.ReactNode;
+  width?: number;
 };
 
 export default function Modal({ title, width = 600, visible, closeFunc, children }: ModalProps) {

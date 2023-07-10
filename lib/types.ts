@@ -90,3 +90,61 @@ export type Chart = {
   label: string;
   points: number[];
 }
+
+// ========== sheet data ========== //
+export enum PlayerSheetEnum {
+  player_name = "昵称",
+  best_point = "半庄最高分数",
+  num_matches = "半庄数",
+  score = "精算点",
+  ho_rate = "和率",
+  avg_point = "和了得点",
+  hoju_rate = "铳率",
+  avg_hoju_point = "铳点",
+  richi_rate = "立直率",
+  naki_rate = "副露率",
+  num_1 = "一位",
+  num_2 = "二位",
+  num_3 = "三位",
+  num_4 = "四位",
+  top2_rate = "连对率",
+  last_avoid_rate = "避四率",
+};
+export type PlayerJSONType = {
+  [key in PlayerSheetEnum]?: any
+};
+
+export enum TeamSheetEnum {
+  team_name = "队伍",
+  score = "分数",
+  num_matches = "对局数",
+};
+export type TeamJSONType = {
+  [key in TeamSheetEnum]?: any
+};
+
+export enum ScheduleSheetEnum {
+  game_date = "日期",
+  game_round = "轮次",
+  team_1 = "东",
+  team_2 = "南",
+  team_3 = "西",
+  team_4 = "北",
+  remark = "说明",
+};
+export type ScheduleJSONType = {
+  [key in ScheduleSheetEnum]?: any
+};
+
+export enum SheetNameEnum {
+  prePlayer = "初赛个人数据统计",
+  preTeam = "初赛队伍排名",
+  preSchedule = "初赛赛果统计",
+  semiPlayer = "半决赛个人数据统计",
+  semiTeam = "半决赛队伍排名",
+  semiSchedule = "半决赛赛果统计",
+  finalPlayer = "决赛个人数据统计",
+  finalTeam = "决赛队伍排名",
+  finalSchedule = "决赛赛果统计",
+};
+export type SheetNames = `${SheetNameEnum}`;

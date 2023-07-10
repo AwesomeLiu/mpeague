@@ -12,7 +12,7 @@ import {
   UnknownPlayer
 } from "./types";
 import { PlayerRankEnum, PlayerRankType } from "./types";
-import formatSurfix from "./formatSurfix";
+import { formatSurfix } from "./format";
 
 export function handleTeamInfo(dataSource: any[]): TeamInfo[] {
   const result = dataSource.map(d => {

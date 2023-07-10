@@ -1,5 +1,5 @@
 import { parseISO, isSameYear } from "date-fns";
-import formatDate from "@/lib/formatDate";
+import { formatDate } from "@/lib/format";
 
 type DateProps = {
   dateString: string;

@@ -4,7 +4,9 @@ import { tMenu } from "@/lib/types";
 import { getMenu } from "@/lib/api";
 import Container from "../container";
 import Menu from "./menu";
+import Popover from "../popover/popover";
 import LOGO from "../../public/logo.svg";
+import QRCode from "../../public/qr-code.jpg";
 
 export default async function Header() {
   const menu: tMenu[] = await getMenu();
@@ -25,7 +27,23 @@ export default async function Header() {
           <nav className="flex items-center">
             <Menu menu={menu} />
           </nav>
-          <button className="btn btn-primary font-bold">立即加入</button>
+          <div className="relative">
+            <Popover
+              position="bottom"
+              content={(
+                <div className="w-[300px]">
+                  <Image
+                    src={QRCode}
+                    alt="sd"
+                    width={300}
+                    height={300}
+                  />
+                </div>
+              )}
+            >
+              <button className="btn btn-primary">立即加入</button>
+            </Popover>
+          </div>
         </div>
       </Container>
     </header>

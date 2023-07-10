@@ -1,4 +1,4 @@
-import { db } from "@vercel/postgres";
+import { isBefore } from "date-fns";
 import {
   GameDetail,
   GameRound,
@@ -21,18 +21,8 @@ import {
   handleTeamDetail,
   handleTeamInfo
 } from "./handler";
-import formatDate from "./formatDate";
-
-export async function fetchData(queryString: string) {
-  /* console.log({
-    POSTGRES_URL: process.env.POSTGRES_URL,
-    POSTGRES_URL_NON_POOLING: process.env.POSTGRES_URL_NON_POOLING
-  }); */
-  const client = await db.connect();
-  const response = await client.query(queryString);
-  client.release();
-  return response;
-}
+import fetchData from "./fetch";
+import { formatDate } from "./format";
 
 export async function getTeamsById(teamId?: number[]): Promise<TeamInfo[]> {
   let constraint = "";
@@ -153,19 +143,37 @@ export async function getPlayersByTeamId(teamId?: number[]): Promise<PlayerBrief
 
 export async function getCurrentSchedule(): Promise<ScheduleType[]> {
   const queryString = `
-    SELECT * FROM schedule
-    WHERE game_round = (
-      SELECT
-        game_round
-      FROM schedule
-      WHERE game_date = current_date
-    )
-    ORDER BY game_date ASC;
+    SELECT
+      MIN(game_date) AS first_day,
+      MAX(game_date) AS last_day
+    FROM schedule
   `;
   const response = await fetchData(queryString);
+  const firstDay = response.rows[0].first_day;
+  const lastDay = response.rows[0].last_day;
+  const today = new Date();
 
-  if (response.rowCount === 0) {
-    // query last round
+  if (isBefore(today, firstDay)) {
+    // query first round schedule
+    let result = await getScheduleByRound(1);
+    return result;
+  } else if (isBefore(today, lastDay)) {
+    // query current round schedule
+    let res = await fetchData(`
+      SELECT * FROM schedule
+      WHERE game_round = (
+        SELECT
+          game_round
+        FROM schedule
+        WHERE game_date = current_date
+      )
+      ORDER BY game_date ASC;
+    `);
+    let teams = await getTeamsById();
+    let result = handleScheduleType(res.rows, teams);
+    return result;
+  } else {
+    // query last round schedule
     let res = await fetchData(`
       SELECT
         MAX(game_round) AS max_round
@@ -175,10 +183,6 @@ export async function getCurrentSchedule(): Promise<ScheduleType[]> {
     let result = await getScheduleByRound(lastRound);
     return result;
   }
-
-  const teams = await getTeamsById();
-  const data = handleScheduleType(response.rows, teams);
-  return data;
 }
 
 export async function getScheduleByRound(round: number): Promise<ScheduleType[]> {

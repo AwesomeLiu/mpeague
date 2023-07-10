@@ -2,7 +2,7 @@ import Image from "next/image";
 import { PlayerRankEnum } from "@/lib/types";
 import Container from "@/components/container";
 import TeamRank from "@/components/team/teamRank";
-import News from "@/components/news";
+import News from "@/components/news/news";
 import PlayerRankWrapper from "@/components/player/playerRankWrapper";
 import PlayerRank from "@/components/player/playerRank";
 import MajorPic from "../public/hero.png";
@@ -57,7 +57,7 @@ export default async function Page() {
               date="2023-05-28"
             />
           </div>
-          <button className="block mx-auto font-bold btn btn-border">查看更多</button>
+          <button className="block mx-auto btn btn-border">查看更多</button>
         </section>
       </Container>
     </>

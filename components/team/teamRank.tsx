@@ -10,7 +10,7 @@ export default async function TeamRank() {
       {
         dataSource.map(d => (
           <li key={d.id}>
-            <div className="flex items-center justify-center gap-[25px]">
+            <div className="flex items-center justify-center gap-[25px] hoverCard">
               <div
                 className={cn("px-[8px] py-[4px] text-[24px] font-bold text-white rounded-[8px]", {
                   "bg-red": d.rank === 1,
