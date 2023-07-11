@@ -9,7 +9,7 @@ import {
   TeamSheetEnum,
 } from './types';
 import { insertSchedule, updatePlayer, updateTeam } from './update';
-import { superset } from "d3";
+import { superset } from "d3-array";
 
 export async function parseFromUrl(url: string) {
   const res = await fetch(url);
